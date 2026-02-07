@@ -1,0 +1,47 @@
+{
+	"pages": [
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "词语分配助手",
+				"navigationBarBackgroundColor": "#2979FF",
+				"navigationBarTextStyle": "white",
+				"backgroundColor": "#F5F7FA",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/result/result",
+			"style": {
+				"navigationBarTitleText": "方案结果",
+				"navigationBarBackgroundColor": "#2979FF",
+				"navigationBarTextStyle": "white",
+				"enablePullDownRefresh": true
+			}
+		},
+		{
+			"path": "pages/view/view",
+			"style": {
+				"navigationBarTitleText": "查看词语",
+				"navigationBarBackgroundColor": "#2979FF",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/history/history",
+			"style": {
+				"navigationBarTitleText": "历史记录",
+				"navigationBarBackgroundColor": "#2979FF",
+				"navigationBarTextStyle": "white",
+				"enablePullDownRefresh": true
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "词语分配助手",
+		"navigationBarBackgroundColor": "#2979FF",
+		"backgroundColor": "#F5F7FA"
+	},
+	"uniIdRouter": {}
+}

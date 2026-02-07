@@ -1,0 +1,88 @@
+/**
+ * 公共样式
+ */
+
+@import './variables.scss';
+@import './mixins.scss';
+
+// 页面容器
+.page-container {
+  min-height: 100vh;
+  background: $bg-color;
+  padding: $spacing-lg;
+}
+
+// 卡片
+.card {
+  @include card-style;
+  margin-bottom: $spacing-base;
+}
+
+// 分割线
+.divider {
+  height: 1px;
+  background: $border-light;
+  margin: $spacing-base 0;
+}
+
+// 空状态
+.empty-state {
+  @include flex-center;
+  flex-direction: column;
+  padding: 120rpx 0;
+
+  .empty-icon {
+    font-size: 120rpx;
+    margin-bottom: $spacing-base;
+  }
+
+  .empty-text {
+    font-size: $font-size-base;
+    color: $text-secondary;
+  }
+}
+
+// 加载状态
+.loading-state {
+  @include flex-center;
+  padding: 80rpx 0;
+}
+
+// 标题
+.section-title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $text-primary;
+  margin-bottom: $spacing-lg;
+}
+
+// 提示文本
+.tip-text {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.6;
+}
+
+// 标签
+.tag {
+  display: inline-block;
+  padding: 8rpx 16rpx;
+  border-radius: $border-radius-xs;
+  font-size: $font-size-xs;
+  background: $bg-grey;
+  color: $text-secondary;
+}
+
+// 徽章
+.badge {
+  display: inline-block;
+  min-width: 32rpx;
+  height: 32rpx;
+  line-height: 32rpx;
+  padding: 0 8rpx;
+  border-radius: 16rpx;
+  background: $error-color;
+  color: $text-white;
+  font-size: 20rpx;
+  text-align: center;
+}

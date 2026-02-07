@@ -1,0 +1,75 @@
+/**
+ * 全局样式变量
+ */
+
+// 颜色定义
+$primary-color: #2979FF;
+$secondary-color: #FF9800;
+$success-color: #4CAF50;
+$warning-color: #FFC107;
+$error-color: #F44336;
+$info-color: #2196F3;
+
+// 文字颜色
+$text-primary: #333333;
+$text-secondary: #666666;
+$text-disabled: #999999;
+$text-white: #FFFFFF;
+
+// 背景颜色
+$bg-color: #F5F7FA;
+$bg-white: #FFFFFF;
+$bg-grey: #E8EAED;
+$bg-light-grey: #F5F5F5;
+
+// 边框颜色
+$border-color: #E0E0E0;
+$border-light: #F0F0F0;
+
+// 类型背景色
+$type-a-bg: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+$type-b-bg: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
+$type-c-bg: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%);
+
+// 字体大小
+$font-size-xs: 24rpx;
+$font-size-sm: 26rpx;
+$font-size-base: 28rpx;
+$font-size-lg: 32rpx;
+$font-size-xl: 36rpx;
+$font-size-xxl: 48rpx;
+
+// 字重
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 600;
+
+// 间距
+$spacing-xs: 8rpx;
+$spacing-sm: 16rpx;
+$spacing-base: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 48rpx;
+
+// 圆角
+$border-radius-xs: 8rpx;
+$border-radius-sm: 12rpx;
+$border-radius-base: 16rpx;
+$border-radius-lg: 24rpx;
+$border-radius-circle: 50%;
+
+// 阴影
+$box-shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+$box-shadow-base: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+$box-shadow-lg: 0 8rpx 32rpx rgba(0, 0, 0, 0.12);
+
+// 过渡时间
+$transition-fast: 0.2s;
+$transition-base: 0.3s;
+$transition-slow: 0.5s;
+
+// Z-index层级
+$z-index-mask: 1000;
+$z-index-modal: 1100;
+$z-index-toast: 1200;
+$z-index-loading: 1300;
