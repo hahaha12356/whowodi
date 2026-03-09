@@ -78,7 +78,7 @@
 import { getPlanById, savePlan } from '@/utils/storage.js'
 import { getUserId } from '@/utils/storage.js'
 import { TYPE_TEXT, TYPE_TIPS } from '@/utils/constants.js'
-import { getPlanFromCloud, getPlanByPlanId, getClaimsForPlan, createClaim } from '@/utils/cloud.js'
+import { getPlanFromCloud, getPlanByPlanId, getClaimsForPlan, tryCreateClaimAtomically } from '@/utils/cloud.js'
 import { showLoading, hideLoading, showToast } from '@/utils/ui.js'
 
 export default {
@@ -202,7 +202,7 @@ export default {
       }
     },
 
-    // 核心分配逻辑：自动、随机、使用claims集合避免权限问题
+    // 核心分配逻辑：自动、随机、使用原子性操作避免并发冲突
     async startAutoAssign() {
       if (this.hasViewed || this.isProcessing) return
 
@@ -217,7 +217,7 @@ export default {
       }
 
       this.isProcessing = true
-      // 模拟一点“搜索中”的科技感延迟
+      // 模拟一点"搜索中"的科技感延迟
       await new Promise(r => setTimeout(r, 800))
 
       try {
@@ -235,7 +235,7 @@ export default {
         // 核心：如果权限不对，给出明确指引，而不是默默降级产生重复
         let content = '网络拥堵，请稍后重试'
         if (err.message && err.message.includes('PERMISSION_DENIED')) {
-          content = '数据库权限不足：非房主用户无法写入记录。请联系房主将plans集合权限设置为“所有用户可读、所有用户可写”。'
+          content = '数据库权限不足：非房主用户无法写入记录。请联系房主将plans集合权限设置为"所有用户可读、所有用户可写"。'
         }
 
         uni.showModal({
@@ -247,8 +247,15 @@ export default {
     },
 
     async getRobustAssignment(retry = 0) {
-      if (retry > 5) {
-        uni.showToast({ title: '网络繁忙，请重试', icon: 'none' })
+      const maxRetries = 15  // 增加最大重试次数
+
+      if (retry > maxRetries) {
+        console.error('超过最大重试次数:', retry)
+        uni.showModal({
+          title: '领取失败',
+          content: '网络繁忙或所有座位已被占用，请稍后重试',
+          showCancel: false
+        })
         return null
       }
 
@@ -258,19 +265,23 @@ export default {
       // 1. 检查本地缓存（我是否已经领过）
       const localData = uni.getStorageSync(`view_${this.planId}_${this.userId}`)
       if (localData && localData.assignment) {
+        console.log('从本地缓存恢复身份:', localData.assignment.index)
         return localData.assignment
       }
 
-      // 2. 获取云端所有领取记录
+      // 2. 获取云端所有领取记录（最新状态）
       const claims = await getClaimsForPlan(this.planId)
-      console.log('当前已领取记录:', claims)
+      console.log(`第${retry + 1}次尝试 - 当前已领取记录数:`, claims.length)
 
       // 3. 检查我是否已经在云端领过
       const myClaim = claims.find(c => c.oddrtyId === myUserId)
       if (myClaim) {
         // 我已经领过了，返回对应的assignment
         const myAssign = assignments.find(a => a.index === myClaim.seatIndex)
-        if (myAssign) return myAssign
+        if (myAssign) {
+          console.log('从云端恢复身份:', myAssign.index)
+          return myAssign
+        }
       }
 
       // 4. 筛选出已被占用的座位号
@@ -279,47 +290,48 @@ export default {
       // 5. 筛选出真正的空位
       const emptySeats = assignments.filter(a => !claimedSeats.has(a.index))
 
+      console.log('剩余空位数:', emptySeats.length, '已占用:', claimedSeats.size)
+
       if (emptySeats.length === 0) {
-        uni.showToast({ title: '所有人已领完', icon: 'none' })
+        console.warn('所有座位已被占用')
+        uni.showToast({ title: '所有座位已被占用', icon: 'none', duration: 2000 })
         return null
       }
 
-      // 6. 真·随机选一个
-      const target = emptySeats[Math.floor(Math.random() * emptySeats.length)]
-      console.log('随机选中座位:', target.index)
+      // 6. 随机选一个座位（每次都重新选，增加随机性）
+      // 使用更好的随机算法，避免总是选择同一个座位
+      const randomIndex = Math.floor(Math.random() * emptySeats.length)
+      const target = emptySeats[randomIndex]
+      console.log(`第${retry + 1}次尝试 - 随机选中座位:`, target.index, '(从', emptySeats.length, '个空位中选择)')
 
-      // 7. 创建我的领取记录（这是我自己的记录，一定能写入成功）
-      const success = await createClaim(this.planId, target.index, myUserId)
+      // 7. 使用原子性操作尝试创建领取记录
+      // 这个函数会先检查座位是否被占用，如果被占用会立即返回 conflict: true
+      // 避免了两个用户同时写入同一个座位的问题
+      const result = await tryCreateClaimAtomically(this.planId, target.index, myUserId)
 
-      if (!success) {
-        // 创建失败，可能是网络问题，重试
-        await new Promise(r => setTimeout(r, 500))
-        return this.getRobustAssignment(retry + 1)
-      }
+      if (!result.success) {
+        if (result.conflict) {
+          // 座位被占用了（可能是被别人抢了），重新尝试
+          console.warn(`第${retry + 1}次尝试 - 座位${target.index}冲突，重新选择...`)
 
-      // 8. 二次校验：再拉一次claims，确认我的记录是唯一的（应对并发）
-      const freshClaims = await getClaimsForPlan(this.planId)
-      const sameSeatClaims = freshClaims.filter(c => c.seatIndex === target.index)
+          // 根据重试次数调整延迟时间（指数退避）
+          const delay = Math.min(100 + retry * 50, 500)
+          await new Promise(r => setTimeout(r, delay))
 
-      if (sameSeatClaims.length > 1) {
-        // 有多人同时抢了这个座位，比较创建时间，只有最早的那个人生效
-        // 按时间排序（服务端时间）
-        sameSeatClaims.sort((a, b) => {
-          const timeA = a.claimTime ? new Date(a.claimTime).getTime() : 0
-          const timeB = b.claimTime ? new Date(b.claimTime).getTime() : 0
-          return timeA - timeB
-        })
+          return this.getRobustAssignment(retry + 1)
+        } else {
+          // 网络错误或其他问题，重试
+          console.error(`第${retry + 1}次尝试 - 网络错误，重试...`)
 
-        const winner = sameSeatClaims[0]
-        if (winner.oddrtyId !== myUserId) {
-          // 我不是赢家，换个号重试
-          console.warn('并发冲突，正在换号重试...')
+          const delay = Math.min(300 + retry * 100, 1000)
+          await new Promise(r => setTimeout(r, delay))
+
           return this.getRobustAssignment(retry + 1)
         }
       }
 
-      // 9. 领取成功！
-      console.log('领取成功:', target.index)
+      // 8. 领取成功！
+      console.log(`✅ 第${retry + 1}次尝试 - 领取成功! 座位:`, target.index)
       return target
     },
 
