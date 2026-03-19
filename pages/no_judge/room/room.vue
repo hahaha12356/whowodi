@@ -23,8 +23,11 @@
       <view class="my-card" v-if="myPlayer">
         <view class="my-card-header">
           <text class="my-seat">号位: {{ myPlayer.seatIndex }}号</text>
-          <view class="my-role-badge" :class="myPlayer.role">
-            <text>{{ myPlayer.role === 'impostor' ? '卧底' : (myPlayer.role === 'blank' ? '白板' : '平民') }}</text>
+          <view class="my-role-badge" :class="[myPlayer.role, { masked: !(myPlayer.isOut || (room && room.status === 'game_over')) }]">
+            <text v-if="myPlayer.isOut || (room && room.status === 'game_over')">
+              {{ myPlayer.role === 'impostor' ? '卧底' : (myPlayer.role === 'blank' ? '白板' : '平民') }}
+            </text>
+            <text v-else>身份待揭晓</text>
           </view>
         </view>
         <view class="my-word-box">
@@ -486,7 +489,7 @@ export default {
     margin-bottom: 24rpx;
 
     .my-seat {
-      font-size: 30rpx;
+      font-size: 38rpx;
       font-weight: bold;
       color: #333;
     }
@@ -499,6 +502,7 @@ export default {
       &.civilian { background: rgba(13, 110, 110, 0.1); color: #0D6E6E; }
       &.impostor { background: rgba(224, 123, 84, 0.1); color: #E07B54; }
       &.blank { background: rgba(0,0,0, 0.05); color: #666; }
+      &.masked { background: #F5F5F5; color: #999; }
     }
   }
 
