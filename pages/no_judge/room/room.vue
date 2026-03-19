@@ -117,6 +117,7 @@
       <view class="state-panel" v-if="room.status === 'game_over'">
         <view class="winner-box" :class="room.winner">
           <text class="winner-title">{{ room.winner === 'civilian' ? '平民群体胜利！' : '卧底胜利！' }}</text>
+          <text class="winner-reason" v-if="room.winReason">{{ room.winReason }}</text>
         </view>
         
         <view class="identity-reveal">
@@ -382,7 +383,8 @@ export default {
               await syncGameState(this.docId, {
                 players: playersClone,
                 status: 'game_over',
-                winner: winRes.winner
+                winner: winRes.winner,
+                winReason: winRes.reason
               })
             } else {
               // 游戏继续
@@ -605,7 +607,8 @@ export default {
   &.civilian { background: #E8F4F4; color: #0D6E6E; }
   &.impostor { background: rgba(224, 123, 84, 0.1); color: #E07B54; }
   
-  .winner-title { font-size: 40rpx; font-weight: bold; }
+  .winner-title { font-size: 40rpx; font-weight: bold; display: block; margin-bottom: 12rpx; }
+  .winner-reason { font-size: 28rpx; opacity: 0.8; }
 }
 
 .reveal-list {

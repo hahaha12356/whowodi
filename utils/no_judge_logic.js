@@ -21,15 +21,17 @@ export function checkWinCondition(roomData) {
   const totalGoodAlive = civiliansAlive + blanksAlive
   const totalAlive = impostorsAlive + totalGoodAlive
   
-  // 规则1：所有卧底出局，大部队胜利
+  // 规则1：平民胜利条件
+  // 剩余卧底人数 == 0 (只要卧底全部出局，平民立即获胜，无论白板是否还在)
   if (impostorsAlive === 0) {
-    return { winner: 'civilian', reason: '所有卧底已被淘汰' }
+    return { winner: 'civilian', reason: '所有卧底已被淘汰，平民胜利！' }
   }
   
-  // 规则2：如果场上只剩3人或以下，且卧底至少有1人存活（或者卧底人数 >= 好人数），卧底获胜
-  // 或者传统规则：如果存活人数中，卧底人数 >= 好人人数，卧底获胜
-  if (impostorsAlive >= totalGoodAlive || (totalAlive <= 3 && impostorsAlive > 0)) {
-    return { winner: 'impostor', reason: '卧底幸存到了最后阶段' }
+  // 规则2：卧底及白板胜利条件
+  // 剩余卧底人数 + 剩余白板人数 >= 剩余平民人数
+  // (当非平民阵营的数量大于或等于平民数量时，平民已失去投票优势，判定卧底获胜)
+  if ((impostorsAlive + blanksAlive) >= civiliansAlive) {
+    return { winner: 'impostor', reason: '卧底与白板人数占优，卧底获胜！' }
   }
   
   return null // 游戏继续
