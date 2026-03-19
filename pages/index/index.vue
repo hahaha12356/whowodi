@@ -143,6 +143,11 @@
       <view class="no-judge-btn" @tap="goToNoJudgeMode">
         <text class="no-judge-btn-text">🤖 进入无法官模式（系统发牌）</text>
       </view>
+      
+      <!-- 意见箱入口 -->
+      <view class="suggest-btn" @tap="goToSuggest">
+        <text class="suggest-btn-text">💡 意见留言箱</text>
+      </view>
 
       <!-- 使用提示 -->
       <view class="tips-card">
@@ -351,6 +356,12 @@ export default {
     goToNoJudgeMode() {
       uni.navigateTo({
         url: '/pages/no_judge/setup/setup'
+      })
+    },
+    // 跳转到意见留言箱
+    goToSuggest() {
+      uni.navigateTo({
+        url: '/pages/suggest/suggest'
       })
     }
   }
@@ -743,6 +754,44 @@ export default {
     font-size: 32rpx;
     font-weight: 600;
     color: #0D6E6E;
+  }
+}
+
+.no-judge-btn {
+  height: 96rpx;
+  background: #E8F4F4;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #0D6E6E;
+  margin-top: 16rpx;
+  margin-bottom: 24rpx;
+
+  .no-judge-btn-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #0D6E6E;
+  }
+}
+
+.suggest-btn {
+  height: 96rpx;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #2979FF;
+  margin-bottom: 40rpx;
+  box-shadow: 0 4rpx 12rpx rgba(41, 121, 255, 0.1);
+
+  .suggest-btn-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 30rpx;
+    font-weight: 600;
+    color: #2979FF;
   }
 }
 

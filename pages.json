@@ -52,6 +52,15 @@
 				"navigationBarTextStyle": "white",
 				"enablePullDownRefresh": true
 			}
+		},
+		{
+			"path": "pages/suggest/suggest",
+			"style": {
+				"navigationBarTitleText": "意见留言箱",
+				"navigationBarBackgroundColor": "#2979FF",
+				"navigationBarTextStyle": "white",
+				"enablePullDownRefresh": true
+			}
 		}
 	],
 	"globalStyle": {
