@@ -139,6 +139,11 @@
         <text class="start-btn-text">开始发牌</text>
       </view>
 
+      <!-- 无法官模式入口 -->
+      <view class="no-judge-btn" @tap="goToNoJudgeMode">
+        <text class="no-judge-btn-text">🤖 进入无法官模式（系统发牌）</text>
+      </view>
+
       <!-- 使用提示 -->
       <view class="tips-card">
         <view class="tips-header">
@@ -340,6 +345,13 @@ export default {
       } finally {
         hideLoading()
       }
+    },
+
+    // 跳转到无法官模式设置页
+    goToNoJudgeMode() {
+      uni.navigateTo({
+        url: '/pages/no_judge/setup/setup'
+      })
     }
   }
 }
@@ -713,6 +725,24 @@ export default {
     font-size: 34rpx;
     font-weight: 600;
     color: #FFFFFF;
+  }
+}
+
+.no-judge-btn {
+  height: 96rpx;
+  background: #E8F4F4;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #0D6E6E;
+  margin-top: -16rpx;
+
+  .no-judge-btn-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #0D6E6E;
   }
 }
 

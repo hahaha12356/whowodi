@@ -35,6 +35,23 @@
 				"navigationBarTextStyle": "white",
 				"enablePullDownRefresh": true
 			}
+		},
+		{
+			"path": "pages/no_judge/setup/setup",
+			"style": {
+				"navigationBarTitleText": "无法官模式设置",
+				"navigationBarBackgroundColor": "#0D6E6E",
+				"navigationBarTextStyle": "white"
+			}
+		},
+		{
+			"path": "pages/no_judge/room/room",
+			"style": {
+				"navigationBarTitleText": "无法官模式房间",
+				"navigationBarBackgroundColor": "#0D6E6E",
+				"navigationBarTextStyle": "white",
+				"enablePullDownRefresh": true
+			}
 		}
 	],
 	"globalStyle": {
