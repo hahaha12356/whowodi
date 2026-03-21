@@ -91,6 +91,11 @@
         
         <view class="vote-progress" v-if="Object.keys(room.votes).length > 0">
           <text>已投票: {{ Object.keys(room.votes).length }} / {{ alivePlayers.length }}</text>
+          
+          <!-- 核心增强：防止逻辑卡死的安全锁，房主可以手动触发结算 -->
+          <view v-if="isReferee && Object.keys(room.votes).length >= alivePlayers.length" class="force-settle-link" @tap="checkGameLogic(true)">
+              <text>若未自动结算，可点此强制结算</text>
+          </view>
         </view>
         
         <view v-if="myPlayer && !myPlayer.isOut">
@@ -123,18 +128,24 @@
           <text class="winner-reason" v-if="room.winReason">{{ room.winReason }}</text>
         </view>
         
-        <view class="identity-reveal">
-          <text class="reveal-title">身份核对</text>
-          <view class="reveal-list">
-            <view class="reveal-item" v-for="p in room.players" :key="p.seatIndex">
-              <text>{{ p.seatIndex }}号：</text>
-              <text :class="p.role">{{ p.role === 'impostor' ? '卧底' : (p.role === 'blank' ? '白板' : '平民') }} ({{p.word}})</text>
-              <text v-if="p.isOut" class="out-mark">已淘汰</text>
-            </view>
+        <view class="reveal-list">
+          <view class="reveal-item" v-for="p in room.players" :key="p.seatIndex">
+            <text>{{ p.seatIndex }}号：</text>
+            <text :class="p.role">{{ p.role === 'impostor' ? '卧底' : (p.role === 'blank' ? '白板' : '平民') }} ({{p.word}})</text>
+            <text v-if="p.isOut" class="out-mark">已淘汰</text>
           </view>
         </view>
         
-        <button class="action-btn restart-btn" @tap="goToHome">再来一局</button>
+        <!-- 房主专享控制 -->
+        <view class="referee-actions" v-if="isReferee">
+          <button class="action-btn restart-btn" @tap="handleQuickRestart">🚀 一键重开 (原地再来)</button>
+          <button class="action-btn secondary-btn" @tap="handleModifySettings">⚙️ 修改设置 (返回设置页)</button>
+        </view>
+        <view class="waiting-restart-hint" v-else>
+          <text>请稍等，房主正在准备下一局...</text>
+        </view>
+        
+        <button class="action-btn home-btn" @tap="goToHome">返回首页</button>
       </view>
       
     </view>
@@ -145,6 +156,7 @@
 import { watchRoom, joinGame, submitVote, syncGameState } from '@/utils/no_judge_cloud.js'
 import { checkWinCondition, countVotes } from '@/utils/no_judge_logic.js'
 import { showLoading, hideLoading, showToast } from '@/utils/ui.js'
+import { wordLibrary } from '@/static/data/wordLibrary.js'
 
 export default {
   data() {
@@ -229,7 +241,7 @@ export default {
       showLoading('连接房间...')
       this.watcher = watchRoom(this.roomId, (roomData) => {
         hideLoading()
-        this.room = roomData
+        
         if (roomData.players) {
           const me = roomData.players.find(p => p.userId === this.userId)
           if (me) {
@@ -237,17 +249,28 @@ export default {
           }
         }
         
-        // 关键修复：只有当 [状态]、[轮次] 或 [投票类型] 发生实质性变更时，才重置本地选择
-        // 这样可以防止：当 A 玩家点击确认投票产生 DB 更新时，B 玩家手机收到监听导致本地已勾选的号码被清空
-        const oldPhaseKey = this.room ? `${this.room.status}_${this.room.currentRound}_${this.room.voteType}` : ''
+        // --- 核心修复：状态变更判定逻辑必须在更新本地 this.room 之前执行 ---
+        const oldRoom = this.room
+        const oldPhaseKey = oldRoom ? `${oldRoom.status}_${oldRoom.currentRound}_${oldRoom.voteType}` : ''
         const newPhaseKey = `${roomData.status}_${roomData.currentRound}_${roomData.voteType}`
         
-        this.room = roomData
+        // 关键修复：如果从游戏结束切回到开始/等待阶段，强制重置逻辑指纹，确保新局第一轮能正常结算
+        if (roomData.status === 'waiting' || (oldRoom && oldRoom.status === 'game_over' && roomData.status !== 'game_over')) {
+           console.log('检测到游戏重开，强制重置逻辑指纹')
+           this.lastProcessedVoteType = ''
+        }
 
         if (oldPhaseKey && oldPhaseKey !== newPhaseKey) {
            console.log('检测到阶段变更，重置本地选择:', oldPhaseKey, '->', newPhaseKey)
            this.selectedVote = null
         }
+        
+        // 核心修复：如果从重开阶段切回到初始阶段，重置本地结算指纹，防止新平局或新投票无法处理
+        if (roomData.status === 'waiting' || (this.room && this.room.status === 'game_over' && roomData.status !== 'game_over')) {
+           this.lastProcessedVoteType = ''
+        }
+        
+        this.room = roomData
 
         this.checkGameLogic()
       }, (err) => {
@@ -299,6 +322,7 @@ export default {
     },
 
     onVoteChange(e) {
+      console.log('选择投票对象:', e.detail.value)
       this.selectedVote = e.detail.value
     },
 
@@ -330,13 +354,14 @@ export default {
       const aliveCount = this.alivePlayers.length
       const voteCount = Object.keys(this.room.votes || {}).length
       
+      console.log(`[结算检查] 已投:${voteCount}, 存活:${aliveCount}, 状态:${this.room.voteType}`)
+      
       if (voteCount >= aliveCount && aliveCount > 0) {
-        // 增加对当前状态的幂等判断：防止同一轮数据由于不同步被多次处理
         const logicFingerprint = `${this.room.currentRound}_${this.room.voteType}`
-        if (this.lastProcessedVoteType === logicFingerprint) return 
-        
-        this.isProcessingLogic = true
-        this.lastProcessedVoteType = logicFingerprint
+        if (this.lastProcessedVoteType === logicFingerprint) {
+          console.log('[结算检查] 该轮逻辑已处理过，跳过:', logicFingerprint)
+          return 
+        }
         
         // 所有人已投票，结算
         const result = countVotes(this.room.votes, this.room.tiedPlayers)
@@ -411,9 +436,106 @@ export default {
       }
     },
 
+    async handleQuickRestart() {
+      if (!this.isReferee) return
+      
+      showLoading('重排中...')
+      
+      try {
+        const config = this.room.config
+        
+        // 1. 重新选词
+        let category = wordLibrary.categories.find(c => c.id === config.categoryId)
+        if (!category && wordLibrary.categories.length > 0) {
+          category = wordLibrary.categories.filter(c => c.enabled)[0]
+        }
+        if (config.categoryId === 'random') {
+           const enabledCats = wordLibrary.categories.filter(c => c.enabled)
+           category = enabledCats[Math.floor(Math.random() * enabledCats.length)]
+        }
+        
+        const wordPair = category.words[Math.floor(Math.random() * category.words.length)]
+        
+        // 2. 构造角色列表
+        let roles = []
+        for(let i=0; i<config.playerCount - config.impostorCount - config.blankCount; i++) roles.push({type: 'civilian', word: wordPair.wordA})
+        for(let i=0; i<config.impostorCount; i++) roles.push({type: 'impostor', word: wordPair.wordB})
+        for(let i=0; i<config.blankCount; i++) roles.push({type: 'blank', word: '白板'})
+        
+        // 洗牌 roles
+        roles.sort(() => Math.random() - 0.5)
+        
+        // 3. 更新数据库
+        // 注意：我们直接重置 room 状态。这里可以选择是否清除 players 列表。
+        // 为了极致体验，我们不清除 players，而是重置每个 player 的身份，让他们直接看到新身份
+        const playersClone = JSON.parse(JSON.stringify(this.room.players || []))
+        playersClone.forEach(p => {
+          p.isOut = false
+          p.word = '' // 设为空，等他们重新触发 handleJoin 或者我们在这里直接分配
+          // 如果不想让他们重新点“领身份”，我们可以在这里直接根据 seatIndex 分配 role
+          const targetRole = roles[p.seatIndex - 1]
+          if (targetRole) {
+            p.role = targetRole.type
+            p.word = targetRole.word
+          }
+        })
+        
+        const updateData = {
+          wordPair: {
+            wordA: wordPair.wordA,
+            wordB: wordPair.wordB
+          },
+          roles: roles,
+          players: playersClone,
+          status: 'waiting', // 设为 waiting 状态，如果有人没领完可以继续领
+          currentRound: 1,
+          speakingFinishedList: [],
+          votes: {},
+          tiedPlayers: [],
+          voteType: 'normal',
+          winner: null,
+          winReason: '',
+          updateTime: wx.cloud.database().serverDate()
+        }
+        
+        // 如果房间人已经满了，直接进下一步也可以，但为了稳妥先回 waiting
+        if (playersClone.length >= config.playerCount) {
+          updateData.status = 'speaking'
+        }
+
+        await syncGameState(this.docId, updateData)
+        showToast('新一局已开启')
+      } catch (err) {
+        console.error('重开失败:', err)
+        showToast('重开失败')
+      } finally {
+        hideLoading()
+      }
+    },
+
+    handleModifySettings() {
+      if (!this.isReferee) return
+      const config = this.room.config
+      uni.navigateTo({
+        url: `/pages/no_judge/setup/setup?playerCount=${config.playerCount}&impostorCount=${config.impostorCount}&blankCount=${config.blankCount}&categoryId=${config.categoryId}`
+      })
+    },
+
     goToHome() {
-      uni.reLaunch({
-        url: '/pages/index/index'
+      uni.showModal({
+        title: '温馨提示',
+        content: '确定要退出房间吗？大家可能正在准备下一局，退出后将无法接收到开局提醒。',
+        confirmText: '坚决离开',
+        cancelText: '我再等等',
+        confirmColor: '#999',
+        cancelColor: '#0D6E6E',
+        success: (res) => {
+          if (res.confirm) {
+            uni.reLaunch({
+              url: '/pages/index/index'
+            })
+          }
+        }
       })
     }
   }
@@ -651,11 +773,52 @@ export default {
   
   &::after { border: none; }
   
-  &.join-btn, &.finish-speak-btn, &.vote-btn { background: #0D6E6E; color: #FFF; }
-  &.share-btn { background: #F0F0F0; color: #333; }
-  &.restart-btn { background: #1A1A1A; color: #FFF; margin-top: 32rpx; }
+  &.join-btn, &.finish-speak-btn, &.vote-btn, &.restart-btn { background: #0D6E6E; color: #FFF; }
+  &.share-btn, &.secondary-btn { background: #F0F0F0; color: #333; }
+  &.home-btn { background: #1A1A1A; color: #FFF; margin-top: 24rpx; }
   
   &[disabled] { opacity: 0.5; }
+}
+
+.referee-actions {
+  margin-top: 40rpx;
+  padding-top: 32rpx;
+  border-top: 2rpx dashed #EEE;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  
+  .restart-btn {
+    background: #0D6E6E !important;
+    margin-bottom: 0;
+  }
+}
+
+.waiting-restart-hint {
+  text-align: center;
+  padding: 32rpx;
+  background: #F9F9F9;
+  border-radius: 12rpx;
+  margin-top: 40rpx;
+  border: 2rpx solid #F0F0F0;
+  
+  text {
+    font-size: 26rpx;
+    color: #888;
+    font-style: italic;
+  }
+}
+
+.force-settle-link {
+  margin-top: 16rpx;
+  text-align: center;
+  
+  text {
+    font-size: 24rpx;
+    color: #0D6E6E;
+    text-decoration: underline;
+    opacity: 0.8;
+  }
 }
 
 .waiting-text, .out-text {

@@ -102,9 +102,18 @@ export default {
     }
   },
 
-  onLoad() {
+  onLoad(options) {
     this.categories = wordLibrary.categories.filter(c => c.enabled)
-    if (this.categories.length > 0) {
+    
+    // 解析传入的配置（用于从房间返回修改设置时回填）
+    if (options.playerCount) this.playerCount = Number(options.playerCount)
+    if (options.impostorCount) this.impostorCount = Number(options.impostorCount)
+    if (options.blankCount !== undefined) this.blankCount = Number(options.blankCount)
+    if (options.categoryId) this.selectedCategoryId = options.categoryId
+
+    // 如果没设分类或分类被禁用，选第一个
+    const currentCat = this.categories.find(c => c.id === this.selectedCategoryId)
+    if (!currentCat && this.categories.length > 0) {
       this.selectedCategoryId = this.categories[0].id
     }
   },
