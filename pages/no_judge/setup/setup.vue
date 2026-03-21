@@ -109,6 +109,14 @@ export default {
     }
   },
 
+  onShareAppMessage() {
+    return {
+      title: '谁是卧底 - 无法官公平对局',
+      path: '/pages/no_judge/setup/setup',
+      imageUrl: '/static/images/share-cover.png'
+    }
+  },
+
   methods: {
     adjustPlayerCount(delta) {
       const newValue = this.playerCount + delta

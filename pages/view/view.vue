@@ -142,6 +142,14 @@ export default {
     }
   },
 
+  onShareAppMessage() {
+    return {
+      title: '谁 is 卧底 - 这个房间在找你',
+      path: `/pages/view/view?cid=${this.plan ? (this.plan.cloudId || '') : ''}`,
+      imageUrl: '/static/images/share-cover.png'
+    }
+  },
+
   methods: {
     // 统一处理参数逻辑
     // 统一处理参数逻辑

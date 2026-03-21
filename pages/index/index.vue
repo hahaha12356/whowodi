@@ -194,6 +194,22 @@ export default {
     this.checkClipboard()
   },
 
+  onShareAppMessage() {
+    return {
+      title: 'who是卧底分词小工具 - 聚会必备',
+      path: '/pages/index/index',
+      imageUrl: '/static/images/share-cover.png'
+    }
+  },
+
+  onShareTimeline() {
+    return {
+      title: 'who是卧底分词小工具 - 聚会必备',
+      path: '/pages/index/index',
+      imageUrl: '/static/images/share-cover.png'
+    }
+  },
+
   methods: {
     // 检查剪贴板口令
     checkClipboard() {

@@ -219,7 +219,8 @@ export default {
   onShareAppMessage() {
     return {
       title: '谁是卧底-邀请你加入无法官对局',
-      path: `/pages/no_judge/room/room?roomId=${this.roomId}&_id=${this.docId}`
+      path: `/pages/no_judge/room/room?roomId=${this.roomId}&_id=${this.docId}`,
+      imageUrl: '/static/images/share-cover.png'
     }
   },
 

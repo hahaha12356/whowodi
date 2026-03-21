@@ -143,8 +143,9 @@ export default {
     if (this.cloudId) {
       console.log('使用云端ID分享:', this.cloudId)
       return {
-        title: `谁是卧底 # ${this.plan.planId}`,
-        path: `/pages/view/view?cid=${this.cloudId}`
+        title: `谁 is 卧底 # ${this.plan.planId}`,
+        path: `/pages/view/view?cid=${this.cloudId}`,
+        imageUrl: '/static/images/share-cover.png'
       }
     }
 
@@ -153,8 +154,9 @@ export default {
     console.log('云端ID未就绪，使用q参数降级分享:', qVal)
 
     return {
-      title: `谁是卧底 # ${this.plan.planId}`,
-      path: `/pages/view/view?q=${encodeURIComponent(qVal)}`
+      title: `谁 is 卧底 # ${this.plan.planId}`,
+      path: `/pages/view/view?q=${encodeURIComponent(qVal)}`,
+      imageUrl: '/static/images/share-cover.png'
     }
   },
 
@@ -164,16 +166,18 @@ export default {
     // 优先使用云端ID分享
     if (this.cloudId) {
       return {
-        title: `谁是卧底 # ${this.plan.planId}`,
-        query: `cid=${this.cloudId}`
+        title: `谁 is 卧底 # ${this.plan.planId}`,
+        query: `cid=${this.cloudId}`,
+        imageUrl: '/static/images/share-cover.png'
       }
     }
 
     const qVal = this.getQValue()
 
     return {
-      title: `谁是卧底 # ${this.plan.planId}`,
-      query: `q=${encodeURIComponent(qVal)}`
+      title: `谁 is 卧底 # ${this.plan.planId}`,
+      query: `q=${encodeURIComponent(qVal)}`,
+      imageUrl: '/static/images/share-cover.png'
     }
   },
 
